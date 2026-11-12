@@ -14,16 +14,17 @@ env:
   JOB_TYPE: BUILD
 
 jobs:
-  build:
+  build199:
     runs-on: macos-latest
     steps:
       - name: Checkout this repo
         uses: actions/checkout@v4
 
-      - name: Checkout AppleALC upstream
+      - name: Checkout AppleALC 1.9.9
         uses: actions/checkout@v4
         with:
           repository: acidanthera/AppleALC
+          ref: 1.9.9
           path: alc
 
       - name: Checkout MacKernelSDK
@@ -32,7 +33,7 @@ jobs:
           repository: acidanthera/MacKernelSDK
           path: alc/MacKernelSDK
 
-      - name: Apply layout 217
+      - name: Apply layout variants
         run: python3 make_layout217.py
 
       - name: CI Bootstrap
@@ -49,46 +50,64 @@ jobs:
         working-directory: alc
         run: xcodebuild -jobs 1 -configuration Release -arch ACID32 -arch x86_64
 
-      - name: Collect evidence
-        if: always()
-        run: |
-          mkdir -p report
-          {
-            echo "=== build products ==="
-            ls -l alc/build/*/*.zip 2>/dev/null || echo none
-            echo
-            echo "=== resource table size ==="
-            ls -l alc/AppleALC/kern_resources.cpp 2>/dev/null || echo missing
-            echo
-            echo "=== ALC256 codec entry (expect layouts 34 / platforms 34) ==="
-            grep -n "ALC256" alc/AppleALC/kern_resources.cpp 2>/dev/null | cut -c1-400 || echo none
-            echo
-            echo "=== last layout arrays in table ==="
-            grep -o "layouts[0-9]*, [0-9]*" alc/AppleALC/kern_resources.cpp 2>/dev/null | tail -5 || echo none
-            echo
-            echo "=== pin config 217 inside built kext ==="
-            grep -c "merged 217" alc/build/Release/AppleALC.kext/Contents/Info.plist 2>/dev/null || echo "not found"
-            echo
-            echo "=== LayoutID 217 entries in built kext ==="
-            /usr/libexec/PlistBuddy -c "Print :IOKitPersonalities:as.vit9696.AppleALC:HDAConfigDefault" alc/build/Release/AppleALC.kext/Contents/Info.plist 2>/dev/null | grep -B4 "217" | head -12 || echo none
-          } > report/evidence.txt 2>&1
-          cat report/evidence.txt
-
-      - name: Commit evidence
-        if: always()
-        run: |
-          git config user.name "applealc-ci"
-          git config user.email "applealc-ci@users.noreply.github.com"
-          git add -f report/evidence.txt
-          git commit -m "ci: evidence run ${{ github.run_number }}" || echo "nothing to commit"
-          git push origin main || echo "push failed"
-
       - name: Publish release asset
         if: success()
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}
-          name: layout217 build ${{ github.run_number }}
+          tag_name: build-${{ github.run_number }}-199
+          name: layout variants on AppleALC 1.9.9 (run ${{ github.run_number }})
           body: |
-            AppleALC with ALC256 layout 217 for Dell Latitude 5175 (ALC3266).
+            Layouts 217 / 218 / 219 on top of upstream AppleALC 1.9.9.
+          files: alc/build/*/*.zip
+
+  build196:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Checkout AppleALC 1.9.6
+        uses: actions/checkout@v4
+        with:
+          repository: acidanthera/AppleALC
+          ref: 1.9.6
+          path: alc
+
+      - name: Checkout MacKernelSDK
+        uses: actions/checkout@v4
+        with:
+          repository: acidanthera/MacKernelSDK
+          path: alc/MacKernelSDK
+
+      - name: Apply layout variants
+        run: python3 make_layout217.py
+
+      - name: CI Bootstrap
+        working-directory: alc
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+
+      - name: Lilu Bootstrap
+        working-directory: alc
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/Lilu/master/Lilu/Scripts/bootstrap.sh) && eval "$src" || exit 1
+
+      - name: Build
+        working-directory: alc
+        run: xcodebuild -jobs 1 -configuration Release -arch ACID32 -arch x86_64
+
+      - name: Show products
+        if: always()
+        working-directory: alc
+        run: |
+          ls -l build/*/*.zip 2>/dev/null || echo "no product"
+
+      - name: Publish release asset 1.9.6
+        if: success()
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}-196
+          name: layout variants on AppleALC 1.9.6 (run ${{ github.run_number }})
+          body: |
+            Layouts 217 / 218 / 219 on top of upstream AppleALC 1.9.6 (the version that works on this machine).
           files: alc/build/*/*.zip
