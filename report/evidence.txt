@@ -1,11 +1,11 @@
 === build products ===
--rw-r--r--  1 runner  staff  3786089 Nov 12 09:41 alc/build/Release/AppleALC-1.9.9-RELEASE.zip
+-rw-r--r--  1 runner  staff  3798391 Nov 12 11:05 alc/build/Release/AppleALC-1.9.9-RELEASE.zip
 
 === resource table size ===
--rw-r--r--  1 runner  staff  10556990 Nov 12 09:40 alc/AppleALC/kern_resources.cpp
+-rw-r--r--  1 runner  staff  10594402 Nov 12 11:05 alc/AppleALC/kern_resources.cpp
 
 === ALC256 codec entry (expect layouts 34 / platforms 34) ===
-74725:	{ DEBUG_STRING("ALC256 (3246)"), 0x256, revisions19, 1, platforms55, 34, layouts55, 34, patches55, 9 },
+74993:	{ DEBUG_STRING("ALC256 (3246)"), 0x256, revisions19, 1, platforms55, 36, layouts55, 36, patches55, 9 },
 
 === last layout arrays in table ===
 layouts105, 2
