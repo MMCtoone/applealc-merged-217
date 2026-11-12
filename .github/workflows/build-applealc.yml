@@ -1,0 +1,61 @@
+name: Build merged AppleALC
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    env:
+      PROJECT_TYPE: KEXT
+      ACID32: 1
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Checkout AppleALC upstream
+        uses: actions/checkout@v4
+        with:
+          repository: acidanthera/AppleALC
+          path: alc
+
+      - name: Checkout MacKernelSDK
+        uses: actions/checkout@v4
+        with:
+          repository: acidanthera/MacKernelSDK
+          path: alc/MacKernelSDK
+
+      - name: Apply layout 217
+        run: python3 make_layout217.py
+
+      - name: Bootstrap
+        working-directory: alc
+        run: |
+          set -euo pipefail
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/Lilu/master/Lilu/Scripts/bootstrap.sh) && eval "$src" || exit 1
+
+      - name: Build
+        working-directory: alc
+        run: xcodebuild -jobs 1 -configuration Release -arch ACID32 -arch x86_64
+
+      - name: Show products
+        working-directory: alc
+        run: |
+          ls -la build || true
+          find build -maxdepth 3 -name '*.zip' | head -10
+
+      - name: Publish release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: layout217 build ${{ github.run_number }}
+          body: |
+            AppleALC with ALC256 layout 217 for Dell Latitude 5175 (ALC3266):
+            headphone settings from layout 21 (Dell 5570) + speaker/headphone output chains split into two independent paths.
+          files: alc/build/*/*.zip
