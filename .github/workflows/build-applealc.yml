@@ -14,53 +14,7 @@ env:
   JOB_TYPE: BUILD
 
 jobs:
-  build199:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout this repo
-        uses: actions/checkout@v4
-
-      - name: Checkout AppleALC 1.9.9
-        uses: actions/checkout@v4
-        with:
-          repository: acidanthera/AppleALC
-          ref: 1.9.9
-          path: alc
-
-      - name: Checkout MacKernelSDK
-        uses: actions/checkout@v4
-        with:
-          repository: acidanthera/MacKernelSDK
-          path: alc/MacKernelSDK
-
-      - name: Apply layout variants
-        run: python3 make_layout217.py
-
-      - name: CI Bootstrap
-        working-directory: alc
-        run: |
-          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
-
-      - name: Lilu Bootstrap
-        working-directory: alc
-        run: |
-          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/Lilu/master/Lilu/Scripts/bootstrap.sh) && eval "$src" || exit 1
-
-      - name: Build
-        working-directory: alc
-        run: xcodebuild -jobs 1 -configuration Release -arch ACID32 -arch x86_64
-
-      - name: Publish release asset
-        if: success()
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.run_number }}-199
-          name: layout variants on AppleALC 1.9.9 (run ${{ github.run_number }})
-          body: |
-            Layouts 217 / 218 / 219 on top of upstream AppleALC 1.9.9.
-          files: alc/build/*/*.zip
-
-  build196:
+  inplace:
     runs-on: macos-latest
     steps:
       - name: Checkout this repo
@@ -79,8 +33,8 @@ jobs:
           repository: acidanthera/MacKernelSDK
           path: alc/MacKernelSDK
 
-      - name: Apply layout variants
-        run: python3 make_layout217.py
+      - name: Apply in-place variants
+        run: python3 make_inplace.py
 
       - name: CI Bootstrap
         working-directory: alc
@@ -102,12 +56,12 @@ jobs:
         run: |
           ls -l build/*/*.zip 2>/dev/null || echo "no product"
 
-      - name: Publish release asset 1.9.6
+      - name: Publish release asset
         if: success()
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: build-${{ github.run_number }}-196
-          name: layout variants on AppleALC 1.9.6 (run ${{ github.run_number }})
+          tag_name: build-${{ github.run_number }}-inplace
+          name: in-place fixes on AppleALC 1.9.6 (run ${{ github.run_number }})
           body: |
-            Layouts 217 / 218 / 219 on top of upstream AppleALC 1.9.6 (the version that works on this machine).
+            layout21 with layout28's IntSpeaker block, and layout28 with layout21's pin config.
           files: alc/build/*/*.zip
