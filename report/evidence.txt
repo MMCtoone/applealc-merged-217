@@ -1,0 +1,22 @@
+=== build products ===
+-rw-r--r--  1 runner  staff  3785995 Nov 12 09:27 alc/build/Release/AppleALC-1.9.9-RELEASE.zip
+
+=== generated resource table ===
+-rw-r--r--  1 runner  staff  10556990 Nov 12 09:27 alc/AppleALC/kern_resources.cpp
+
+=== grep 217 in kern_resources.cpp ===
+
+=== ALC256 block size in table ===
+1
+
+=== registered ids in used Info.plist ===
+				<string>layout217.xml.zlib</string>
+			</dict>
+		</array>
+
+=== kext Info.plist hit check ===
+Dict {
+    ALCUserClientProvider = Dict {
+        IOClass = ALCUserClientProvider
+        IOMatchCategory = ALCUserClientProvider
+        IOProbeScore = 1000
