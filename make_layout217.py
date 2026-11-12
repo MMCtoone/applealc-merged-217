@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Generate ALC256 layout 217 for Dell Latitude 5175 (ALC3266).
+"""Generate ALC256 layout 217 for Dell Latitude 5175 (ALC3266 / ALC256 family).
 
-layout 217 = layout 21 (Dell 5570) settings for the headphone,
-            + the speaker / headphone output chains split into two
-              independent HDA paths (the way layout 28 does it).
+layout 217 = layout 21 (Andres ZeroCross, Dell 5570) settings for the headphone
+            + the speaker / headphone output chains split into two independent
+              HDA paths (the way layout 28 does it)
+            + the pin configuration of layout 21 cloned to id 217
 """
 import io
 import os
@@ -12,6 +13,9 @@ import re
 
 NEW_ID = 217
 RES = 'alc/Resources/ALC256'
+CODEC_ID = 283902550          # ALC256 family (ALC3266 reports this value)
+SRC_ID = 21                   # pin configuration donor
+PIN_CFG = 'alc/Resources/PinConfigs.kext/Contents/Info.plist'
 
 
 def load(path):
@@ -70,9 +74,25 @@ def main():
             'Path': 'Platforms217.xml.zlib',
         })
     plistlib.dump(info, open(info_path, 'wb'), fmt=plistlib.FMT_XML, sort_keys=False)
-
     print('layout217 registry ok:', [e['Path'] for e in files['Layouts'] if e.get('Id') == NEW_ID])
     print('Platforms217 registry ok:', [e['Path'] for e in files['Platforms'] if e.get('Id') == NEW_ID])
+
+    # 4) clone the pin configuration (HDAConfigDefault entry) of layout 21 to 217
+    pc = plistlib.load(open(PIN_CFG, 'rb'))
+    arr = pc['IOKitPersonalities']['as.vit9696.AppleALC']['HDAConfigDefault']
+    donors = [e for e in arr if e.get('LayoutID') == SRC_ID and e.get('CodecID') == CODEC_ID]
+    assert donors, 'layout21 pin config for ALC256 not found'
+    donor = donors[0]
+    exists = any(e.get('LayoutID') == NEW_ID and e.get('CodecID') == CODEC_ID for e in arr)
+    if not exists:
+        entry = dict(donor)
+        entry['LayoutID'] = NEW_ID
+        entry['Codec'] = 'Dell 5175 merged 217: pin config of layout 21 (Dell 5570)'
+        arr.append(entry)
+        plistlib.dump(pc, open(PIN_CFG, 'wb'), fmt=plistlib.FMT_XML, sort_keys=False)
+        print('pin config ok: cloned entry for 217, ConfigData bytes =', len(entry['ConfigData']))
+    else:
+        print('pin config ok: entry for 217 already present')
 
 
 if __name__ == '__main__':
