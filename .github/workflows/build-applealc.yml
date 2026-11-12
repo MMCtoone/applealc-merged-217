@@ -49,18 +49,46 @@ jobs:
         working-directory: alc
         run: xcodebuild -jobs 1 -configuration Release -arch ACID32 -arch x86_64
 
-      - name: Show products
-        working-directory: alc
+      - name: Collect evidence
+        if: always()
         run: |
-          ls -la build || true
-          find build -maxdepth 3 -name '*.zip' | head -10
+          mkdir -p report
+          {
+            echo "=== build products ==="
+            ls -l alc/build/*/*.zip 2>/dev/null || echo none
+            echo
+            echo "=== generated resource table ==="
+            ls -l alc/AppleALC/kern_resources.cpp 2>/dev/null || echo "kern_resources.cpp missing"
+            echo
+            echo "=== grep 217 in kern_resources.cpp ==="
+            grep -n "layout217\|Platforms217" alc/AppleALC/kern_resources.cpp 2>/dev/null | head -10 || echo "none"
+            echo
+            echo "=== ALC256 block size in table ==="
+            grep -c "ALC256" alc/AppleALC/kern_resources.cpp 2>/dev/null || true
+            echo
+            echo "=== registered ids in used Info.plist ==="
+            grep -A2 "layout217" alc/Resources/ALC256/Info.plist 2>/dev/null || echo "no entry in source Info.plist"
+            echo
+            echo "=== kext Info.plist hit check ==="
+            /usr/libexec/PlistBuddy -c "Print :IOKitPersonalities" alc/build/Release/AppleALC.kext/Contents/Info.plist 2>/dev/null | head -5 || echo none
+          } > report/evidence.txt 2>&1
+          cat report/evidence.txt
+
+      - name: Commit evidence
+        if: always()
+        run: |
+          git config user.name "applealc-ci"
+          git config user.email "applealc-ci@users.noreply.github.com"
+          git add -f report/evidence.txt
+          git commit -m "ci: evidence run ${{ github.run_number }}" || echo "nothing to commit"
+          git push origin main || echo "push failed"
 
       - name: Publish release asset
+        if: success()
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
           name: layout217 build ${{ github.run_number }}
           body: |
-            AppleALC with ALC256 layout 217 for Dell Latitude 5175 (ALC3266):
-            headphone settings from layout 21 (Dell 5570) + speaker/headphone output chains split into two independent paths.
+            AppleALC with ALC256 layout 217 for Dell Latitude 5175 (ALC3266).
           files: alc/build/*/*.zip
